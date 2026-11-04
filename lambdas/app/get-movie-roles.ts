@@ -1,6 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import {
+  actorKey,
   ddb,
   isRoleItem,
   movieKey,
@@ -20,18 +21,60 @@ export const handler = async (
   if (movieId === undefined) {
     return response(400, { message: "movieID must be a positive integer" });
   }
-  try {
+
+  
+    // const queryResult = await ddb.send(
+    //   new QueryCommand({
+    //     TableName: tableName,
+    //     KeyConditionExpression: "PK = :pk",
+    //     ExpressionAttributeValues: { ":pk": movieKey(movieId) },
+    //     // ExclusiveStartKey: lastKey,
+    //   })
+    // );
+    try {
+    const actorParam = event.queryStringParameters?.actor;
+
+    if(actorParam !== undefined) {
+      const actorId = parseId(actorParam);
+
+      if (actorId === undefined) {
+        return response(400, { message: "actor must be a positive integer" });
+
+      }
+    
+      const getResult = await ddb.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: {
+            PK: movieKey(movieId),
+            SK: actorKey(actorId),
+          },
+
+        })
+      );
+
+      return response (200, {
+        data: getResult.Item && isRoleItem(getResult.Item)
+        ? [toRole(getResult.Item)]
+        :[],
+      });
+    }
+
     const queryResult = await ddb.send(
       new QueryCommand({
         TableName: tableName,
         KeyConditionExpression: "PK = :pk",
-        ExpressionAttributeValues: { ":pk": movieKey(movieId) },
-        // ExclusiveStartKey: lastKey,
+        ExpressionAttributeValues:{":pk": movieKey(movieId)},
       })
     );
 
-    const resultItems = queryResult.Items ?? [];
-    return response(200, { data: resultItems.filter(isRoleItem).map(toRole) });
+     const resultItems = queryResult.Items ?? [];
+    return response(200, 
+      { data: resultItems.filter(isRoleItem).map(toRole) 
+
+      });
+
+
   } catch (err) {
     console.error("DynamoDB error:", err);
     return response(500, {
