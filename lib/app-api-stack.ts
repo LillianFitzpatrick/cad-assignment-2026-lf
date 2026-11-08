@@ -97,8 +97,23 @@ export class AppApiStack extends cdk.Stack {
 
     moviesResource.addResource('roles').addMethod(
       'POST',
-      new apig.LambdaIntegration(addMovieRoleFn, {proxy : true}), userAuth
+      new apig.LambdaIntegration(addMovieRoleFn, {proxy : true}), 
+      {apiKeyRequired: true}
     );
+
+    // help for API implementation from https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_apigateway.ApiKeyOptions.html
+    // + https://oneuptime.com/blog/post/2026-02-12-create-api-gateway-with-cdk/view
+
+
+    const adminApiKey = api.addApiKey('AdminApiKey');
+    const usagePlan = api.addUsagePlan('AdminUsagePlan');
+
+    usagePlan.addApiKey(adminApiKey);
+
+    usagePlan.addApiStage({
+      stage: api.deploymentStage,
+    });
+
 
     const movieRolesResource = moviesResource.addResource('{movieID}').addResource('roles');
     //added userAuth to movie roles
