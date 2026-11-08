@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { actorKey, ddb, movieKey, type Role, tableName } from "../shared/db";
 import { isResponse, parseJsonObject, response } from "../shared/http";
 import Ajv from "ajv";
@@ -29,12 +29,53 @@ export const handler = async (
   };
 
   try {
-    //  TOD∏O - Add role if its IDs are valid
+    
+    const movieResult = await ddb.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { PK: movieKey(role.movieId), SK: movieKey(role.movieId)
+             },
+          })
+        );
+    
+        if (!movieResult.Item) {
+          return response(404, { message: `Movie ${role.movieId} not found` });
+        }
+
+
+        const actorResult = await ddb.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { PK: actorKey(role.actorId), SK: actorKey(role.actorId)
+             },
+          })
+        );
+    
+        if (!actorResult.Item) {
+          return response(404, { message: `Actor ${role.actorId} not found` });
+        }
+
+        const roleResult = await ddb.send(
+        new GetCommand({
+        TableName: tableName,
+        Key: { PK: movieKey(role.movieId), SK: actorKey(role.actorId) },
+      })
+    );
+
+    // 409 conflict error indicates that the request cannot be completed because it conflicts with the current state of the server.
+    // It checks if the role already exists, and returns that error message if it does.
+    if (roleResult.Item) {
+      return response(409, { message: `Role already exists for this movie and actor.` });
+    }
+
+
+
 
     await ddb.send(
       new TransactWriteCommand({
         TransactItems: [
           {
+            //checks that the movie exists
             ConditionCheck: {
               TableName: tableName,
               Key: {
@@ -45,10 +86,22 @@ export const handler = async (
             },
           },
           {
+            //checks that the actor exists
+            ConditionCheck: {
+              TableName: tableName,
+              Key: {
+                PK: actorKey(role.actorId),
+                SK: actorKey(role.actorId)
+              },
+              ConditionExpression: "attribute_exists(PK)",
+            },
+          },
+          {
             Put: {
               TableName: tableName,
               Item: {PK: movieKey(role.movieId), SK: actorKey(role.actorId), ...role,
             },
+            ConditionExpression: "attribute_not_exists(PK)"
           },
         },
         ],
@@ -61,7 +114,7 @@ export const handler = async (
     console.error("DynamoDB error:", err);
     return response(500, {
       message: "Internal server error",
-      error: err,
+    
     });
   }
 };
