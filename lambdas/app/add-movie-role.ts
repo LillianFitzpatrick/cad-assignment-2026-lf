@@ -4,6 +4,7 @@ import { actorKey, ddb, movieKey, type Role, tableName } from "../shared/db";
 import { isResponse, parseJsonObject, response } from "../shared/http";
 import Ajv from "ajv";
 import schema from "../shared/role.schema.json";
+import { logRequest } from "../shared/request-logger";
 
 const ajv = new Ajv();
 const isValidRolePayload = ajv.compile<Role>(schema);
@@ -11,6 +12,8 @@ const isValidRolePayload = ajv.compile<Role>(schema);
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+   logRequest(event);
+
   const body = parseJsonObject(event);
   if (isResponse(body)) return body;
 
