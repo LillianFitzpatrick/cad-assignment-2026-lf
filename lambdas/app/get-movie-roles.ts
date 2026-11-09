@@ -23,14 +23,7 @@ export const handler = async (
   }
 
   
-    // const queryResult = await ddb.send(
-    //   new QueryCommand({
-    //     TableName: tableName,
-    //     KeyConditionExpression: "PK = :pk",
-    //     ExpressionAttributeValues: { ":pk": movieKey(movieId) },
-    //     // ExclusiveStartKey: lastKey,
-    //   })
-    // );
+   
     try {
 
       const movieResult = await ddb.send(
@@ -46,6 +39,7 @@ export const handler = async (
 
     const actorParam = event.queryStringParameters?.actor;
     
+// Returns the actor's role when an actor ID is provided
 
     if(actorParam !== undefined) {
       const actorId = parseId(actorParam);
@@ -73,6 +67,7 @@ export const handler = async (
       });
     }
 
+    // Retrieve all roles associated with the movie
     const queryResult = await ddb.send(
       new QueryCommand({
         TableName: tableName,

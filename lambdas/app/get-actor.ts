@@ -41,6 +41,8 @@ export const handler = async (
     const actor = toActor(actorResult.Item);
     let result: object = actor;
 
+    // If a movie ID is provided, retrieve the actor's role in that movie.
+
     if (movieId !==undefined){
 
       // Previously, when a movie that doesn't exist, with an actor that did exist was searched

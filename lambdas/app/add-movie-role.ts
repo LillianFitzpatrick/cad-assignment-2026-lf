@@ -32,7 +32,8 @@ export const handler = async (
   };
 
   try {
-    
+    // GetCommand checking that the movie and actor exist before adding the role.
+
     const movieResult = await ddb.send(
           new GetCommand({
             TableName: tableName,
@@ -73,6 +74,8 @@ export const handler = async (
 
 
 
+// Saves role only if the movie and actor exist
+// and the role has not already been added
 
     await ddb.send(
       new TransactWriteCommand({
