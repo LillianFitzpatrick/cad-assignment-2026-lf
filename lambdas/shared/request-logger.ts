@@ -4,7 +4,9 @@ import type { APIGatewayProxyEvent } from 'aws-lambda';
 //   doconnor   /actors/4321?movie=1234
 export const logRequest = (event: APIGatewayProxyEvent): void => {
   // TODO - The authorizer lambda adds relevant info to the event object's context.  )
-  const username = 'TODO';
+  // resource used https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-lambda-authorizer-output.html
+
+  const username = event.requestContext.authorizer?.username;
   const params = Object.entries(event.queryStringParameters ?? {}).filter(
     (entry): entry is [string, string] => entry[1] !== undefined,
   );
